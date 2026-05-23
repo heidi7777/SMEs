@@ -44,6 +44,11 @@ export async function POST(req: Request) {
 
     const moduleKey = body.moduleKey;
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const temperature = model.startsWith("kimi-") ? 1 : 0.7;
+    const max_tokens = model.startsWith("kimi-") ? 768 : 512;
+    const top_p = 0.95;
+    const frequency_penalty = 0;
+    const presence_penalty = 0;
 
     // 滑动窗口：最近 10 条（5 轮）+ 最新输入（已在 messages 内）
     const recent = body.messages.slice(-10);
@@ -51,7 +56,11 @@ export async function POST(req: Request) {
 
     const completion = await createChatCompletion({
       model,
-      temperature: 0.7,
+      temperature,
+      max_tokens,
+      top_p,
+      frequency_penalty,
+      presence_penalty,
       messages: [{ role: "system", content: system }, ...recent],
     });
 

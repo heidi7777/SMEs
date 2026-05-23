@@ -107,6 +107,27 @@ export default function Room(props: { moduleKey: ModuleKey; title: string; empty
       const json = (await res.json().catch(() => ({}))) as { answer?: string; chips?: string[]; error?: string };
       if (!res.ok) throw new Error(json.error || "服务响应异常");
       return { answer: json.answer ?? "", chips: json.chips ?? [] };
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        throw new Error("请求已取消或超时，请重试");
+      }
+      throw e;
+    } finally {
+      clearTimeout(t);
+    }
+  }  async function callApi(nextMessages: Array<{ role: "user" | "assistant"; content: string }>) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 60000);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({ moduleKey, messages: nextMessages }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { answer?: string; chips?: string[]; error?: string };
+      if (!res.ok) throw new Error(json.error || "服务响应异常");
+      return { answer: json.answer ?? "", chips: json.chips ?? [] };
     } finally {
       clearTimeout(t);
     }
