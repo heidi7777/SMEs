@@ -165,6 +165,20 @@ export const appActions = {
     return message.id;
   },
 
+// 在 appActions 对象中补充此方法
+  updateAssistantMessage(messageId: string, payload: Partial<Message>) {
+    setState((prev) => {
+      const nextConvs = prev.conversations.map((c) => {
+        if (!c.messages.some(m => m.id === messageId)) return c;
+        const nextMessages = c.messages.map((m) =>
+          m.id === messageId ? { ...m, ...payload } : m
+        );
+        return { ...c, messages: nextMessages, updatedAt: Date.now() };
+      });
+      return { ...prev, conversations: nextConvs };
+    });
+  },
+
   toggleFavorite(conversationId: string, messageId: string) {
     setState((prev) => {
       const nextConvs = prev.conversations.map((c) => {

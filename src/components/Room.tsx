@@ -94,46 +94,8 @@ export default function Room(props: { moduleKey: ModuleKey; title: string; empty
     autoScrollRef.current = distance < 80;
   }
 
-  async function callApi(nextMessages: Array<{ role: "user" | "assistant"; content: string }>) {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 25000);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({ moduleKey, messages: nextMessages }),
-      });
-      const json = (await res.json().catch(() => ({}))) as { answer?: string; chips?: string[]; error?: string };
-      if (!res.ok) throw new Error(json.error || "服务响应异常");
-      return { answer: json.answer ?? "", chips: json.chips ?? [] };
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") {
-        throw new Error("请求已取消或超时，请重试");
-      }
-      throw e;
-    } finally {
-      clearTimeout(t);
-    }
-  }  async function callApi(nextMessages: Array<{ role: "user" | "assistant"; content: string }>) {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 60000);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({ moduleKey, messages: nextMessages }),
-      });
-      const json = (await res.json().catch(() => ({}))) as { answer?: string; chips?: string[]; error?: string };
-      if (!res.ok) throw new Error(json.error || "服务响应异常");
-      return { answer: json.answer ?? "", chips: json.chips ?? [] };
-    } finally {
-      clearTimeout(t);
-    }
-  }
 
-  async function send(text: string) {
+async function send(text: string) {
     if (!active) return;
     if (isLoading) return;
 
@@ -148,22 +110,80 @@ export default function Room(props: { moduleKey: ModuleKey; title: string; empty
       return;
     }
 
-    // 先落库用户消息
     appActions.addUserMessage(active.id, text);
     setInput("");
     setIsLoading(true);
 
-    // 组装滑动窗口：最近 10 条 + 最新输入（已包含在 local 里）
+    // 提前创建一条空的 Assistant 消息用于流式追加
+    const assistantMsgId = appActions.addAssistantMessage(active.id, { content: "正在思考..." });
+
     const windowMessages = [...messages, { id: "tmp", role: "user" as const, content: text, createdAt: Date.now() }]
       .slice(-10)
       .map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      const { answer, chips } = await callApi(windowMessages);
-      appActions.addAssistantMessage(active.id, { content: answer, chips: toChips(chips) });
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moduleKey, messages: windowMessages }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "服务响应异常");
+      }
+      
+      if (!res.body) throw new Error("未接收到数据流");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let fullText = "";
+      let hasParsedChips = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        fullText += decoder.decode(value, { stream: true });
+        
+        // 实时探测 Chips 标记
+        const chipsMarkerIndex = fullText.indexOf("---CHIPS---");
+        
+        if (chipsMarkerIndex !== -1) {
+          hasParsedChips = true;
+          const mainContent = fullText.substring(0, chipsMarkerIndex).trim();
+          const chipsRawStr = fullText.substring(chipsMarkerIndex + 11).trim();
+          
+          const parsedChips = chipsRawStr
+            .split("|")
+            .map(c => c.trim())
+            .filter(Boolean)
+            .map(t => ({ id: `${Date.now()}_${Math.random().toString(16).slice(2)}`, text: t }));
+
+          appActions.updateAssistantMessage(assistantMsgId, { content: mainContent, chips: parsedChips });
+        } else {
+          appActions.updateAssistantMessage(assistantMsgId, { content: fullText });
+        }
+      }
+
+      // 【风险兜底】如果模型没有输出标记，挂载默认 Chips
+      if (!hasParsedChips) {
+        const defaultChipsMap: Record<string, string[]> = {
+          creative: ["再来 5 个创意方向", "做 JTBD 竞品拆解", "把方案写成一句话卖点"],
+          visual: ["再给 2 套 Prompt", "加留白/构图参数", "把“高级感”转成 PBR 参数"],
+          comms: ["提炼成事实清单", "生成 A/B 选项确认", "输出 NVC 话术并含底线"],
+          marketing: ["按黄金圈出 PPT 大纲", "按 STP 写卖点清单", "生成小红书种草文案"],
+        };
+        const fallbackChips = (defaultChipsMap[moduleKey as string] || []).map(t => ({ 
+          id: `${Date.now()}_${Math.random().toString(16).slice(2)}`, text: t 
+        }));
+        
+        appActions.updateAssistantMessage(assistantMsgId, { content: fullText.trim(), chips: fallbackChips });
+      }
+
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "网络或服务响应超时，请重试";
-      appActions.addAssistantMessage(active.id, { content: msg, isError: true });
+      const msg = e instanceof Error ? e.message : "网络超时，请重试";
+      appActions.updateAssistantMessage(assistantMsgId, { content: msg, isError: true });
     } finally {
       setIsLoading(false);
     }
