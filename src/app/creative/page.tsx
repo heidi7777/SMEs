@@ -1,6 +1,5 @@
 import Workspace from "@/components/Workspace";
 
-export default function CreativePage() {
-  return <Workspace moduleExperts={["creative_innovation", "creative_competitor"]} />;
+export default function Page() {
+  return <Workspace moduleKey="creative" moduleName="创意策略工坊" moduleExperts={['creative_innovation', 'creative_competitor']} />;
 }
-

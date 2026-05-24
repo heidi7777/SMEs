@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const nav = [
   { href: "/", label: "Dashboard" },
-  { href: "/creative", label: "创意工坊" },
+  { href: "/creative", label: "创意策略工坊" },
   { href: "/visual", label: "视觉车间" },
   { href: "/comms", label: "沟通台" },
   { href: "/marketing", label: "营销工坊" },
