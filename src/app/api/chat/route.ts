@@ -1,16 +1,11 @@
-import { streamText } from "ai";
+import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { getSystemPrompt } from "@/lib/prompts";
-import type { ModuleKey } from "@/lib/types";
+import { EXPERT_CONFIGS } from "@/lib/prompts";
+import { NextResponse } from "next/server";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
-function isModuleKey(v: unknown): v is ModuleKey {
-  return v === "creative" || v === "visual" || v === "comms" || v === "marketing";
-}
-
-// 初始化 OpenAI 客户端
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
   baseURL: (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""),
@@ -19,58 +14,29 @@ const openai = createOpenAI({
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
+    const expertId = body?.expertId;
+    const query = body?.query;
 
-    if (!body || !isModuleKey(body.moduleKey) || !Array.isArray(body.messages)) {
-      return new Response(JSON.stringify({ error: "参数错误" }), { status: 400 });
+    if (typeof expertId !== "string" || typeof query !== "string") {
+      return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
     }
 
-    const moduleKey = body.moduleKey;
+    const expertConfig = EXPERT_CONFIGS[expertId];
+    if (!expertConfig) {
+      return NextResponse.json({ error: "Invalid expertId" }, { status: 400 });
+    }
+
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-    
-    const temperature = model.startsWith("kimi-") ? 1 : 0.7;
-    const maxOutputTokens = model.startsWith("kimi-") ? 1536 : 512;
-
-    // 💡 【关键修复】：清洗数据。强制过滤掉前端传来的所有内容为空字符串的脏数据
-    const validMessages = body.messages.filter(
-      (m: any) => typeof m.content === "string" && m.content.trim() !== ""
-    );
-    
-    const recent = validMessages.slice(-8);
-    const system = getSystemPrompt(moduleKey);
-    console.log("[api/chat] request", {
-      moduleKey,
-      model,
-      temperature,
-      maxOutputTokens,
-      recentLength: recent.length,
-      recent,
-      systemSnippet: system.slice(0, 200),
-    });
-
-    const result = await streamText({
+    const result = await generateText({
       model: openai.chat(model),
-      system,
-      messages: recent,
-      temperature,
-      maxOutputTokens,
-      onChunk: async ({ chunk }) => {
-        console.log("[api/chat] onChunk", { chunk });
-      },
-      onError: async ({ error }) => {
-        console.error("[api/chat] onError", error);
-      },
-      onFinish: async (event) => {
-        console.log("[api/chat] onFinish", {
-          finishReason: event.finishReason,
-          text: event.text,
-          usage: event.usage,
-        });
-      },
+      system: expertConfig.systemPrompt,
+      messages: [{ role: "user", content: query }],
+      temperature: 0.6,
     });
 
-    return result.toTextStreamResponse();
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "未知错误";
-    return new Response(JSON.stringify({ error: message }), { status: 500 });
+    return NextResponse.json({ text: result.text ?? "" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

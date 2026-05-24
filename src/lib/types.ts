@@ -35,6 +35,14 @@ export type AssetTemplate = {
   updatedAt: number;
 };
 
+export interface ExpertConfig {
+  id: string;
+  name: string;
+  description: string;
+  defaultTemplate: string;
+  systemPrompt: string;
+}
+
 export type AppState = {
   version: 1;
   conversations: Conversation[];
