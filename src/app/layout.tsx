@@ -24,8 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>
+    // 修改点：在 html 和 body 上强制添加 h-full，并在 body 禁用全局滚动
+    <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+      <body className="h-full overflow-hidden">
         <AppShell>{children}</AppShell>
       </body>
     </html>
