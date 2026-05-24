@@ -28,22 +28,44 @@ export async function POST(req: Request) {
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
     
     const temperature = model.startsWith("kimi-") ? 1 : 0.7;
-    const maxOutputTokens = model.startsWith("kimi-") ? 768 : 512;
+    const maxOutputTokens = model.startsWith("kimi-") ? 1536 : 512;
 
     // 💡 【关键修复】：清洗数据。强制过滤掉前端传来的所有内容为空字符串的脏数据
     const validMessages = body.messages.filter(
-      (m) => typeof m.content === "string" && m.content.trim() !== ""
+      (m: any) => typeof m.content === "string" && m.content.trim() !== ""
     );
     
-    const recent = validMessages.slice(-10);
+    const recent = validMessages.slice(-8);
     const system = getSystemPrompt(moduleKey);
+    console.log("[api/chat] request", {
+      moduleKey,
+      model,
+      temperature,
+      maxOutputTokens,
+      recentLength: recent.length,
+      recent,
+      systemSnippet: system.slice(0, 200),
+    });
 
     const result = await streamText({
-      model: openai.chat(model), 
-      system: system,
+      model: openai.chat(model),
+      system,
       messages: recent,
       temperature,
       maxOutputTokens,
+      onChunk: async ({ chunk }) => {
+        console.log("[api/chat] onChunk", { chunk });
+      },
+      onError: async ({ error }) => {
+        console.error("[api/chat] onError", error);
+      },
+      onFinish: async (event) => {
+        console.log("[api/chat] onFinish", {
+          finishReason: event.finishReason,
+          text: event.text,
+          usage: event.usage,
+        });
+      },
     });
 
     return result.toTextStreamResponse();

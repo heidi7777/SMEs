@@ -70,10 +70,12 @@ function emit() {
   for (const l of listeners) l();
 }
 
-function setState(updater: (prev: AppState) => AppState) {
+function setState(updater: (prev: AppState) => AppState, options?: { persist?: boolean }) {
   ensureHydrated();
   state = updater(state);
-  persist(state);
+  if (options?.persist !== false) {
+    persist(state);
+  }
   emit();
 }
 
@@ -142,7 +144,7 @@ export const appActions = {
     return message.id;
   },
 
-  addAssistantMessage(
+addAssistantMessage(
     conversationId: string,
     payload: Pick<Message, "content" | "chips" | "isError"> & { isFavorite?: boolean }
   ) {
@@ -155,6 +157,7 @@ export const appActions = {
       isFavorite: payload.isFavorite,
       createdAt: now(),
     };
+    
     setState((prev) => {
       const nextConvs = prev.conversations.map((c) => {
         if (c.id !== conversationId) return c;
@@ -162,21 +165,26 @@ export const appActions = {
       });
       return { ...prev, conversations: nextConvs };
     });
+    
+    // 返回生成的 message ID，供外部的流式接收器进行实时文本追加
     return message.id;
   },
 
 // 在 appActions 对象中补充此方法
-  updateAssistantMessage(messageId: string, payload: Partial<Message>) {
-    setState((prev) => {
-      const nextConvs = prev.conversations.map((c) => {
-        if (!c.messages.some(m => m.id === messageId)) return c;
-        const nextMessages = c.messages.map((m) =>
-          m.id === messageId ? { ...m, ...payload } : m
-        );
-        return { ...c, messages: nextMessages, updatedAt: Date.now() };
-      });
-      return { ...prev, conversations: nextConvs };
-    });
+  updateAssistantMessage(messageId: string, payload: Partial<Message>, persist = true) {
+    setState(
+      (prev) => {
+        const nextConvs = prev.conversations.map((c) => {
+          if (!c.messages.some((m) => m.id === messageId)) return c;
+          const nextMessages = c.messages.map((m) =>
+            m.id === messageId ? { ...m, ...payload } : m
+          );
+          return { ...c, messages: nextMessages, updatedAt: Date.now() };
+        });
+        return { ...prev, conversations: nextConvs };
+      },
+      { persist }
+    );
   },
 
   toggleFavorite(conversationId: string, messageId: string) {

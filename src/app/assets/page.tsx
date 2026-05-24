@@ -50,7 +50,7 @@ export default function AssetsPage() {
         </div>
         <div className="muted" style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
           支持在模板中写入 <code>[变量占位符]</code>。在任意房间输入框敲 <code>/</code> 可唤起模板列表，选择后会弹出
-          配方配置 Modal，填写变量并直接发起模型请求。
+          配方配置 Modal，填写变量并直接发起模型请求。你也可以在助手回复气泡中点击「📌 保存为资产」，把优秀回答沉淀到团队资产库。
         </div>
 
         {store.assets.length === 0 ? (

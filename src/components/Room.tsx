@@ -74,6 +74,7 @@ export default function Room(props: { moduleKey: ModuleKey; title: string; empty
   const [assetModal, setAssetModal] = useState<null | { asset: AssetTemplate; keys: string[]; values: Record<string, string> }>(
     null
   );
+  const [saveAssetModal, setSaveAssetModal] = useState<null | { messageId: string; name: string; folder: string; content: string }>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const autoScrollRef = useRef(true);
@@ -138,20 +139,26 @@ async function send(text: string) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let fullText = "";
+      let finalContent = "";
       let hasParsedChips = false;
+      let finalChips: Chip[] | undefined;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         
-        fullText += decoder.decode(value, { stream: true });
+        const chunkText = decoder.decode(value, { stream: true });
+        fullText += chunkText;
+        
+        // 调试：查看真实流式响应
+        console.log("[chat] chunkText", { chunkText, fullTextLength: fullText.length });
         
         // 实时探测 Chips 标记
         const chipsMarkerIndex = fullText.indexOf("---CHIPS---");
         
         if (chipsMarkerIndex !== -1) {
           hasParsedChips = true;
-          const mainContent = fullText.substring(0, chipsMarkerIndex).trim();
+          finalContent = fullText.substring(0, chipsMarkerIndex).trim();
           const chipsRawStr = fullText.substring(chipsMarkerIndex + 11).trim();
           
           const parsedChips = chipsRawStr
@@ -160,9 +167,11 @@ async function send(text: string) {
             .filter(Boolean)
             .map(t => ({ id: `${Date.now()}_${Math.random().toString(16).slice(2)}`, text: t }));
 
-          appActions.updateAssistantMessage(assistantMsgId, { content: mainContent, chips: parsedChips });
+          finalChips = parsedChips;
+          appActions.updateAssistantMessage(assistantMsgId, { content: finalContent, chips: parsedChips }, false);
         } else {
-          appActions.updateAssistantMessage(assistantMsgId, { content: fullText });
+          finalContent = fullText.trim();
+          appActions.updateAssistantMessage(assistantMsgId, { content: finalContent }, false);
         }
       }
 
@@ -178,8 +187,16 @@ async function send(text: string) {
           id: `${Date.now()}_${Math.random().toString(16).slice(2)}`, text: t 
         }));
         
-        appActions.updateAssistantMessage(assistantMsgId, { content: fullText.trim(), chips: fallbackChips });
+        finalChips = fallbackChips;
       }
+
+      console.log("[chat] final response", { finalContent, finalChips, hasParsedChips, fullText });
+
+      appActions.updateAssistantMessage(
+        assistantMsgId,
+        { content: finalContent, chips: finalChips },
+        true
+      );
 
     } catch (e) {
       const msg = e instanceof Error ? e.message : "网络超时，请重试";
@@ -207,6 +224,15 @@ async function send(text: string) {
       return;
     }
     void send(asset.content);
+  }
+
+  function openSaveAssetModal(message: Message) {
+    setSaveAssetModal({
+      messageId: message.id,
+      name: message.content.slice(0, 24).replace(/\s+/g, " ") || "新资产",
+      folder: title,
+      content: message.content,
+    });
   }
 
   function renderHistoryList() {
@@ -341,8 +367,8 @@ async function send(text: string) {
                       >
                         {copiedId === m.id ? "已复制" : "📋 复制"}
                       </button>
-                      <button className="button" onClick={() => appActions.toggleFavorite(active.id, m.id)}>
-                        {m.isFavorite ? "✅ 已收藏" : "📌 收藏"}
+                      <button className="button" onClick={() => openSaveAssetModal(m)}>
+                        ⭐ 收藏
                       </button>
                     </div>
                   )}
@@ -545,6 +571,126 @@ async function send(text: string) {
                   }}
                 >
                   确认并发起
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {saveAssetModal && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setSaveAssetModal(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.55)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+              zIndex: 50,
+            }}
+          >
+            <div
+              className="card"
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "min(720px, 100%)", background: "var(--panel)" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div className="cardTitle">保存为团队资产</div>
+                <button className="button" onClick={() => setSaveAssetModal(null)}>
+                  X
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    资产名称
+                  </span>
+                  <input
+                    value={saveAssetModal.name}
+                    onChange={(e) => setSaveAssetModal((cur) => (cur ? { ...cur, name: e.target.value } : cur))}
+                    placeholder="比如：高转化海报 Prompt 模板"
+                    style={{
+                      width: "100%",
+                      borderRadius: 12,
+                      border: "1px solid var(--border)",
+                      padding: "10px 12px",
+                      background: "var(--panel-2)",
+                      color: "var(--text)",
+                      outline: "none",
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    所属文件夹
+                  </span>
+                  <input
+                    value={saveAssetModal.folder}
+                    onChange={(e) => setSaveAssetModal((cur) => (cur ? { ...cur, folder: e.target.value } : cur))}
+                    placeholder="例如：视觉 / 沟通 / 营销"
+                    style={{
+                      width: "100%",
+                      borderRadius: 12,
+                      border: "1px solid var(--border)",
+                      padding: "10px 12px",
+                      background: "var(--panel-2)",
+                      color: "var(--text)",
+                      outline: "none",
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    模板内容
+                  </span>
+                  <textarea
+                    value={saveAssetModal.content}
+                    onChange={(e) => setSaveAssetModal((cur) => (cur ? { ...cur, content: e.target.value } : cur))}
+                    style={{
+                      width: "100%",
+                      minHeight: 180,
+                      resize: "vertical",
+                      borderRadius: 12,
+                      border: "1px solid var(--border)",
+                      padding: "10px 12px",
+                      background: "var(--panel-2)",
+                      color: "var(--text)",
+                      outline: "none",
+                      lineHeight: 1.5,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  />
+                </label>
+
+                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  你可以在内容中保留 <code>[变量占位符]</code>，以后输入 <code>/</code> 即可快速调用。
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                <button className="button" onClick={() => setSaveAssetModal(null)}>
+                  取消
+                </button>
+                <button
+                  className="button buttonPrimary"
+                  onClick={() => {
+                    if (!saveAssetModal) return;
+                    appActions.upsertAsset({
+                      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                      name: saveAssetModal.name.trim() || "未命名资产",
+                      folder: saveAssetModal.folder.trim() || "默认",
+                      content: saveAssetModal.content,
+                    });
+                    setSaveAssetModal(null);
+                  }}
+                >
+                  保存到资产库
                 </button>
               </div>
             </div>
