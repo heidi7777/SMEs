@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../app/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
 @plugin "@tailwindcss/typography";
 
 :root {
@@ -186,6 +188,12 @@ a {
   }
 }
 
+
+.lineClamp2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 /* ===== Workspace Fallback ===== */
 .workspaceRoot {
   background: #f9fafb;
