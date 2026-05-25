@@ -88,11 +88,17 @@ export default function Room(props: { moduleKey: ModuleKey; title: string; empty
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length, isLoading]);
 
+  const rafRef = useRef<number | null>(null);
+
   function onScroll() {
-    const el = scrollRef.current;
-    if (!el) return;
-    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-    autoScrollRef.current = distance < 80;
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      autoScrollRef.current = distance < 80;
+    });
   }
 
 
@@ -116,7 +122,7 @@ async function send(text: string) {
     setIsLoading(true);
 
     // 提前创建一条空的 Assistant 消息用于流式追加
-    const assistantMsgId = appActions.addAssistantMessage(active.id, { content: "正在思考..." });
+    const assistantMsgId = appActions.addAssistantMessage(active.id, { content: "正在思考…" });
 
     const windowMessages = [...messages, { id: "tmp", role: "user" as const, content: text, createdAt: Date.now() }]
       .slice(-10)
@@ -265,7 +271,8 @@ async function send(text: string) {
               <button
                 className="button buttonDanger"
                 onClick={() => {
-                  appActions.deleteConversation(c.id);
+                  const confirmed = window.confirm(`确定要删除会话「${c.title}」吗？此操作不可撤销。`);
+                  if (confirmed) appActions.deleteConversation(c.id);
                 }}
                 title="删除"
               >
@@ -290,7 +297,7 @@ async function send(text: string) {
             <div className="muted">会话：{active.title}</div>
           </div>
           {convs.length > 0 && (
-            <button className="button" onClick={() => router.push(`/${moduleKey}`)}>
+            <button className="button" onClick={() => router.push(`/${moduleKey}`)} aria-label="查看历史会话">
               查看历史
             </button>
           )}
@@ -364,11 +371,12 @@ async function send(text: string) {
                             // ignore
                           }
                         }}
+                        aria-live="polite"
                       >
-                        {copiedId === m.id ? "已复制" : "📋 复制"}
+                        {copiedId === m.id ? "已复制" : "复制"}
                       </button>
                       <button className="button" onClick={() => openSaveAssetModal(m)}>
-                        ⭐ 收藏
+                        收藏
                       </button>
                     </div>
                   )}
@@ -472,17 +480,9 @@ async function send(text: string) {
                   void send(input);
                 }
               }}
-              style={{
-                width: "100%",
-                resize: "none",
-                borderRadius: 14,
-                border: "1px solid var(--border)",
-                padding: "10px 12px",
-                minHeight: 64,
-                background: "var(--panel-2)",
-                color: "var(--text)",
-                outline: "none",
-              }}
+              className="treaTextarea"
+              style={{ minHeight: 64 }}
+              aria-label="消息输入"
             />
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, alignItems: "center" }}>
               <div className="muted" style={{ fontSize: 12 }}>
@@ -493,7 +493,7 @@ async function send(text: string) {
                 )}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button className="button" onClick={openAssetPicker} disabled={isLoading}>
+                <button className="button" onClick={openAssetPicker} disabled={isLoading} aria-label="唤起资产库">
                   /
                 </button>
                 <button className="button buttonPrimary" onClick={() => void send(input)} disabled={isLoading}>
@@ -527,8 +527,8 @@ async function send(text: string) {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div className="cardTitle">配方配置：{assetModal.asset.name}</div>
-                <button className="button" onClick={() => setAssetModal(null)}>
-                  X
+                <button className="button" onClick={() => setAssetModal(null)} aria-label="关闭">
+                  关闭
                 </button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -545,15 +545,7 @@ async function send(text: string) {
                           return { ...cur, values: { ...cur.values, [k]: e.target.value } };
                         })
                       }
-                      style={{
-                        width: "100%",
-                        borderRadius: 12,
-                        border: "1px solid var(--border)",
-                        padding: "10px 12px",
-                        background: "var(--panel-2)",
-                        color: "var(--text)",
-                        outline: "none",
-                      }}
+                      className="treaInput"
                     />
                   </label>
                 ))}
@@ -600,8 +592,8 @@ async function send(text: string) {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div className="cardTitle">保存为团队资产</div>
-                <button className="button" onClick={() => setSaveAssetModal(null)}>
-                  X
+                <button className="button" onClick={() => setSaveAssetModal(null)} aria-label="关闭">
+                  关闭
                 </button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -612,16 +604,9 @@ async function send(text: string) {
                   <input
                     value={saveAssetModal.name}
                     onChange={(e) => setSaveAssetModal((cur) => (cur ? { ...cur, name: e.target.value } : cur))}
-                    placeholder="比如：高转化海报 Prompt 模板"
-                    style={{
-                      width: "100%",
-                      borderRadius: 12,
-                      border: "1px solid var(--border)",
-                      padding: "10px 12px",
-                      background: "var(--panel-2)",
-                      color: "var(--text)",
-                      outline: "none",
-                    }}
+                    placeholder="比如：高转化海报 Prompt 模板…"
+                    className="treaInput"
+                    autoComplete="off"
                   />
                 </label>
 
@@ -632,16 +617,9 @@ async function send(text: string) {
                   <input
                     value={saveAssetModal.folder}
                     onChange={(e) => setSaveAssetModal((cur) => (cur ? { ...cur, folder: e.target.value } : cur))}
-                    placeholder="例如：视觉 / 沟通 / 营销"
-                    style={{
-                      width: "100%",
-                      borderRadius: 12,
-                      border: "1px solid var(--border)",
-                      padding: "10px 12px",
-                      background: "var(--panel-2)",
-                      color: "var(--text)",
-                      outline: "none",
-                    }}
+                    placeholder="例如：视觉 / 沟通 / 营销…"
+                    className="treaInput"
+                    autoComplete="off"
                   />
                 </label>
 
@@ -652,19 +630,8 @@ async function send(text: string) {
                   <textarea
                     value={saveAssetModal.content}
                     onChange={(e) => setSaveAssetModal((cur) => (cur ? { ...cur, content: e.target.value } : cur))}
-                    style={{
-                      width: "100%",
-                      minHeight: 180,
-                      resize: "vertical",
-                      borderRadius: 12,
-                      border: "1px solid var(--border)",
-                      padding: "10px 12px",
-                      background: "var(--panel-2)",
-                      color: "var(--text)",
-                      outline: "none",
-                      lineHeight: 1.5,
-                      whiteSpace: "pre-wrap",
-                    }}
+                    className="treaTextarea"
+                    style={{ minHeight: 180 }}
                   />
                 </label>
 
@@ -697,19 +664,7 @@ async function send(text: string) {
           </div>
         )}
 
-        <style jsx global>{`
-          @keyframes treaPulse {
-            0% {
-              opacity: 0.45;
-            }
-            50% {
-              opacity: 0.95;
-            }
-            100% {
-              opacity: 0.45;
-            }
-          }
-        `}</style>
+
       </div>
     );
   }

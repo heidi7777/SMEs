@@ -8,6 +8,15 @@ function uuid() {
   return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
+function formatDate(ts: number) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(ts));
+}
+
 export default function AssetsPage() {
   const store = useAppStore();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -39,6 +48,14 @@ export default function AssetsPage() {
     setEditingId(id);
   }
 
+  function handleClear() {
+    if (name.trim() || content.trim()) {
+      const confirmed = window.confirm("确定要清空当前编辑内容吗？未保存的更改将丢失。");
+      if (!confirmed) return;
+    }
+    startCreate();
+  }
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 12, alignItems: "start" }}>
       <div className="card">
@@ -50,7 +67,7 @@ export default function AssetsPage() {
         </div>
         <div className="muted" style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
           支持在模板中写入 <code>[变量占位符]</code>。在任意房间输入框敲 <code>/</code> 可唤起模板列表，选择后会弹出
-          配方配置 Modal，填写变量并直接发起模型请求。你也可以在助手回复气泡中点击「📌 保存为资产」，把优秀回答沉淀到团队资产库。
+          配方配置 Modal，填写变量并直接发起模型请求。你也可以在助手回复气泡中点击「保存为资产」，把优秀回答沉淀到团队资产库。
         </div>
 
         {store.assets.length === 0 ? (
@@ -69,7 +86,7 @@ export default function AssetsPage() {
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</span>
                   </span>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    {new Date(a.updatedAt).toLocaleString()}
+                    {formatDate(a.updatedAt)}
                   </span>
                 </button>
                 <button className="button buttonDanger" onClick={() => appActions.deleteAsset(a.id)}>
@@ -94,16 +111,9 @@ export default function AssetsPage() {
             <input
               value={folder}
               onChange={(e) => setFolder(e.target.value)}
-              placeholder="例如：默认 / 海报 / 沟通话术"
-              style={{
-                width: "100%",
-                borderRadius: 12,
-                border: "1px solid var(--border)",
-                padding: "10px 12px",
-                background: "var(--panel-2)",
-                color: "var(--text)",
-                outline: "none",
-              }}
+              placeholder="例如：默认 / 海报 / 沟通话术…"
+              className="treaInput"
+              autoComplete="off"
             />
           </label>
 
@@ -114,16 +124,9 @@ export default function AssetsPage() {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="例如：客户拒绝加价话术（NVC+BATNA）"
-              style={{
-                width: "100%",
-                borderRadius: 12,
-                border: "1px solid var(--border)",
-                padding: "10px 12px",
-                background: "var(--panel-2)",
-                color: "var(--text)",
-                outline: "none",
-              }}
+              placeholder="例如：客户拒绝加价话术（NVC+BATNA）…"
+              className="treaInput"
+              autoComplete="off"
             />
           </label>
 
@@ -134,25 +137,14 @@ export default function AssetsPage() {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="写模板内容，例如：\n客户诉求：[诉求]\n我的底线：[底线]\n请生成 NVC+BATNA 话术..."
-              style={{
-                width: "100%",
-                resize: "vertical",
-                minHeight: 260,
-                borderRadius: 12,
-                border: "1px solid var(--border)",
-                padding: "10px 12px",
-                background: "var(--panel-2)",
-                color: "var(--text)",
-                outline: "none",
-                lineHeight: 1.5,
-                whiteSpace: "pre-wrap",
-              }}
+              placeholder="写模板内容，例如：&#10;客户诉求：[诉求]&#10;我的底线：[底线]&#10;请生成 NVC+BATNA 话术…"
+              className="treaTextarea"
+              style={{ minHeight: 260 }}
             />
           </label>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-            <button className="button" onClick={startCreate}>
+            <button className="button" onClick={handleClear}>
               清空
             </button>
             <button className="button buttonPrimary" onClick={save}>

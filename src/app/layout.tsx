@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "trea · AI 业务工作台",
   description: "设计密集型中小企业 AI 业务工作台（MVP）",
+  other: {
+    "theme-color": "#0b0c10",
+  },
 };
 
 export default function RootLayout({

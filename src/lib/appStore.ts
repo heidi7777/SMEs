@@ -138,7 +138,7 @@ export const appActions = {
         if (c.id !== conversationId) return c;
         const nextMessages = [...c.messages, message];
         const title =
-          c.messages.length === 0 ? (content.slice(0, 15) + (content.length > 15 ? "..." : "")) : c.title;
+          c.messages.length === 0 ? (content.slice(0, 15) + (content.length > 15 ? "…" : "")) : c.title;
         return { ...c, title, messages: nextMessages, updatedAt: now() };
       });
       return { ...prev, conversations: nextConvs };

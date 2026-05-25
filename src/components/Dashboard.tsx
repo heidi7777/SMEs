@@ -30,6 +30,15 @@ function moduleLabel(k: ModuleKey) {
   return k === "creative" ? "创意工坊" : k === "visual" ? "视觉车间" : k === "comms" ? "沟通台" : "营销工坊";
 }
 
+function formatDate(ts: number) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(ts));
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const store = useAppStore();
@@ -40,7 +49,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="pageTitle">Dashboard</div>
+      <div className="pageTitle">工作台</div>
       <div className="muted" style={{ marginBottom: 14 }}>
         点击「破冰快捷指令卡」即可进入对应房间并新建会话。
       </div>
@@ -49,8 +58,7 @@ export default function Dashboard() {
         {quickCards.map((c) => (
           <button
             key={c.title}
-            className="card"
-            style={{ textAlign: "left", cursor: "pointer" }}
+            className="card quickCard"
             onClick={() => {
               const cid = appActions.createConversation(c.moduleKey);
               router.push(`/${c.moduleKey}?cid=${encodeURIComponent(cid)}&autoSend=${encodeURIComponent(c.seed)}`);
@@ -79,9 +87,9 @@ export default function Dashboard() {
               >
                 <span style={{ display: "flex", gap: 10, minWidth: 0 }}>
                   <span style={{ color: "var(--muted)", whiteSpace: "nowrap" }}>{moduleLabel(c.moduleKey)}</span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{c.title}</span>
                 </span>
-                <span style={{ color: "var(--muted)", fontSize: 12 }}>{new Date(c.updatedAt).toLocaleString()}</span>
+                <span style={{ color: "var(--muted)", fontSize: 12 }}>{formatDate(c.updatedAt)}</span>
               </button>
             ))}
           </div>
@@ -90,4 +98,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

@@ -11,17 +11,18 @@
   --muted: rgba(233, 233, 241, 0.65);
   --border: rgba(233, 233, 241, 0.12);
   --primary: #7c5cff;
+  --primary-soft: rgba(124, 92, 255, 0.16);
+  --primary-border: rgba(124, 92, 255, 0.35);
   --danger: #ff4d4f;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0c10;
-  }
+  --danger-soft: rgba(255, 77, 79, 0.12);
+  --danger-border: rgba(255, 77, 79, 0.35);
+  --danger-text: #ffd1d1;
+  --focus-ring: rgba(124, 92, 255, 0.45);
 }
 
 html {
   height: 100%;
+  color-scheme: dark;
 }
 
 html,
@@ -39,10 +40,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
 }
 
 a {
@@ -50,10 +59,14 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* ===== Focus States ===== */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 /* ===== App Shell ===== */
@@ -102,6 +115,12 @@ a {
   padding: 10px 10px;
   color: var(--muted);
   border: 1px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebarItem:hover {
+  background: rgba(233, 233, 241, 0.04);
+  color: var(--text);
 }
 
 .sidebarItem.isActive {
@@ -169,17 +188,30 @@ a {
   background: var(--panel-2);
   color: var(--text);
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.button:hover {
+  background: rgba(233, 233, 241, 0.08);
 }
 
 .buttonPrimary {
-  background: rgba(124, 92, 255, 0.16);
-  border-color: rgba(124, 92, 255, 0.35);
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+}
+
+.buttonPrimary:hover {
+  background: rgba(124, 92, 255, 0.24);
 }
 
 .buttonDanger {
-  background: rgba(255, 77, 79, 0.12);
-  border-color: rgba(255, 77, 79, 0.35);
-  color: #ffd1d1;
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+}
+
+.buttonDanger:hover {
+  background: rgba(255, 77, 79, 0.2);
 }
 
 @media (max-width: 1100px) {
@@ -188,33 +220,54 @@ a {
   }
 }
 
-
 .lineClamp2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
-/* ===== Workspace Fallback ===== */
+
+/* ===== Quick Cards ===== */
+.quickCard {
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.quickCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-border);
+  box-shadow: 0 4px 20px rgba(124, 92, 255, 0.08);
+}
+
+.quickCard:active {
+  transform: translateY(0);
+}
+
+/* ===== Workspace (Dark Theme Unified) ===== */
 .workspaceRoot {
-  background: #f9fafb;
-  color: #111827;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .workspaceTabs {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
 }
 
 .workspaceExpertCard {
-  background: #ffffff;
-  border-color: #e5e7eb;
-  color: #111827;
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.workspaceExpertCard:hover {
+  background: var(--panel-2);
 }
 
 .workspaceExpertCard.isActive {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: var(--primary);
+  background: rgba(124, 92, 255, 0.08);
 }
 
 .workspaceForm {
@@ -224,23 +277,80 @@ a {
 
 .workspaceInputPanel,
 .workspaceOutputPanel {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  color: #1f2937;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .workspaceActionBtn {
-  background: #2563eb;
+  background: var(--primary);
   color: #ffffff;
-  border: 1px solid #2563eb;
+  border: 1px solid var(--primary);
+}
+
+.workspaceActionBtn:hover:not(:disabled) {
+  background: #6b4fe0;
+  border-color: #6b4fe0;
 }
 
 .workspaceActionBtn:disabled {
-  background: #93c5fd;
-  border-color: #93c5fd;
+  background: rgba(124, 92, 255, 0.4);
+  border-color: rgba(124, 92, 255, 0.4);
 }
 
 .workspaceLoadingOverlay {
-  background: rgba(255, 255, 255, 0.8);
-  color: #374151;
+  background: rgba(11, 12, 16, 0.85);
+  color: var(--text);
+}
+
+/* ===== Form Elements ===== */
+.treaInput,
+.treaTextarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  transition: border-color 0.15s ease;
+}
+
+.treaInput::placeholder,
+.treaTextarea::placeholder {
+  color: var(--muted);
+}
+
+.treaInput:hover,
+.treaTextarea:hover {
+  border-color: rgba(233, 233, 241, 0.2);
+}
+
+.treaInput:focus,
+.treaTextarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/* ===== Animation ===== */
+@keyframes treaPulse {
+  0% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

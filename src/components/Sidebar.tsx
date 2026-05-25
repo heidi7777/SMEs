@@ -18,8 +18,8 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebarBrand">
-        <div className="sidebarLogo">trea</div>
-        <div className="sidebarSub">AI 业务工作台 · MVP</div>
+        <div className="sidebarLogo" translate="no">trea</div>
+        <div className="sidebarSub" translate="no">AI 业务工作台 · MVP</div>
       </div>
 
       <nav className="sidebarNav">

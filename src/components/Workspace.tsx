@@ -13,6 +13,7 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
   const [userInput, setUserInput] = useState<string>("");
   const [resultText, setResultText] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
 
   const handleExpertChange = (expertId: string) => {
     setActiveExpertId(expertId);
@@ -54,13 +55,15 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
   const handleCopy = async () => {
     if (!resultText) return;
     await navigator.clipboard.writeText(resultText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const activeExpert = activeExpertId ? EXPERT_CONFIGS[activeExpertId] : undefined;
 
   return (
-    <div className="workspaceRoot flex h-full w-full flex-col bg-gray-50">
-      <div className="workspaceTabs flex shrink-0 gap-4 overflow-x-auto border-b bg-white p-4">
+    <div className="workspaceRoot flex h-full w-full flex-col">
+      <div className="workspaceTabs flex shrink-0 gap-4 overflow-x-auto p-4">
         {moduleExperts.map((id) => {
           const config = EXPERT_CONFIGS[id];
           const isActive = id === activeExpertId;
@@ -71,60 +74,65 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
               onClick={() => handleExpertChange(id)}
               className={`workspaceExpertCard min-w-[160px] rounded-xl border px-4 py-3 text-left transition-all ${
                 isActive
-                  ? "isActive border-blue-600 bg-blue-50 font-semibold ring-2 ring-blue-200"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                  ? "isActive font-semibold ring-2"
+                  : ""
               }`}
             >
-              <div className="text-sm text-gray-500">{config?.name || id}</div>
-              <div className="mt-2 text-sm text-gray-700 lineClamp2">
-                {config?.description || "专家配置加载中..."}
+              <div className="text-sm" style={{ color: "var(--muted)" }}>{config?.name || id}</div>
+              <div className="mt-2 text-sm lineClamp2" style={{ color: "var(--text)" }}>
+                {config?.description || "专家配置加载中…"}
               </div>
             </button>
           );
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className="workspaceForm flex flex-1 gap-4 overflow-hidden p-4">
-        <div className="workspaceInputPanel flex min-w-0 flex-1 flex-col rounded-lg bg-white p-4 shadow">
-          <div className="mb-4 text-lg font-semibold text-gray-800">
+      <form onSubmit={handleSubmit} className="workspaceForm flex flex-1 gap-4 overflow-hidden">
+        <div className="workspaceInputPanel flex min-w-0 flex-1 flex-col rounded-lg p-4">
+          <div className="mb-4 text-lg font-semibold" style={{ color: "var(--text)" }}>
             {activeExpert?.name || "请选择专家"}
           </div>
           <textarea
-            className="flex-1 w-full resize-none border border-gray-200 bg-white p-4 text-sm text-gray-800 focus:outline-none"
+            className="treaTextarea flex-1 resize-none"
             value={userInput}
             onChange={(event) => setUserInput(event.target.value)}
-            placeholder="请在此输入您的需求与背景信息..."
+            placeholder="请在此输入您的需求与背景信息…"
+            aria-label="输入需求"
           />
           <button
             type="submit"
             disabled={isLoading || !activeExpertId}
-            className="workspaceActionBtn mt-4 inline-flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="workspaceActionBtn mt-4 inline-flex h-12 w-full items-center justify-center rounded-md px-4 text-sm font-semibold transition disabled:cursor-not-allowed"
           >
-            {isLoading ? "AI思考中..." : "生成专属方案"}
+            {isLoading ? "AI 思考中…" : "生成专属方案"}
           </button>
         </div>
 
-        <div className="workspaceOutputPanel relative min-w-0 flex-1 overflow-y-auto rounded-lg bg-white p-6 shadow">
+        <div className="workspaceOutputPanel relative min-w-0 flex-1 overflow-y-auto rounded-lg p-6">
           {isLoading ? (
-            <div className="workspaceLoadingOverlay absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/80">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-300 border-t-blue-600" />
-              <div className="text-gray-700">AI 正在生成，请稍候...</div>
+            <div className="workspaceLoadingOverlay absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div
+                className="h-12 w-12 animate-spin rounded-full border-4"
+                style={{ borderColor: "rgba(124, 92, 255, 0.3)", borderTopColor: "var(--primary)" }}
+              />
+              <div style={{ color: "var(--text)" }}>AI 正在生成，请稍候…</div>
             </div>
           ) : resultText ? (
             <>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="absolute right-6 top-6 rounded-md border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
+                className="button absolute right-6 top-6 px-3 py-1 text-sm"
+                aria-live="polite"
               >
-                一键复制
+                {copied ? "已复制" : "一键复制"}
               </button>
-              <div className="prose max-w-none pt-2 text-gray-800">
+              <div className="prose max-w-none pt-2" style={{ color: "var(--text)" }}>
                 <ReactMarkdown>{resultText}</ReactMarkdown>
               </div>
             </>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center text-center text-gray-500">
+            <div className="flex h-full flex-col items-center justify-center text-center" style={{ color: "var(--muted)" }}>
               <p className="text-base">请在左侧补充信息后点击生成</p>
             </div>
           )}
