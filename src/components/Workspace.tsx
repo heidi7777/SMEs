@@ -76,7 +76,7 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
               }`}
             >
               <div className="text-sm text-gray-500">{config?.name || id}</div>
-              <div className="mt-2 text-sm text-gray-700 line-clamp-2">
+              <div className="mt-2 text-sm text-gray-700 lineClamp2">
                 {config?.description || "专家配置加载中..."}
               </div>
             </button>
