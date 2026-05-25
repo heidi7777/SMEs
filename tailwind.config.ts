@@ -6,7 +6,7 @@ const config: Config = {
   theme: {
     extend: {},
   },
-  // 修改这里：引入 typography 插件
+  // 已经清理了所有的 Git 冲突标记
   plugins: [
     require('@tailwindcss/typography')
   ],
