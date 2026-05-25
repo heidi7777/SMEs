@@ -5,7 +5,10 @@ const config: Config = {
   theme: {
     extend: {},
   },
-  plugins: [],
+  // 修改这里：引入 typography 插件
+  plugins: [
+    require('@tailwindcss/typography')
+  ],
 };
 
 export default config;
