@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import { EXPERT_CONFIGS } from "@/lib/prompts";
 
@@ -14,17 +14,17 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
   const [resultText, setResultText] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (!activeExpertId) {
+  const handleExpertChange = (expertId: string) => {
+    setActiveExpertId(expertId);
+    if (!expertId) {
       setUserInput("");
       setResultText("");
       return;
     }
-
-    const config = EXPERT_CONFIGS[activeExpertId];
+    const config = EXPERT_CONFIGS[expertId];
     setResultText("");
     setUserInput(config?.defaultTemplate || "");
-  }, [activeExpertId]);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,7 +44,7 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
 
       const data = await response.json();
       setResultText(data.text || "");
-    } catch (error) {
+    } catch {
       setResultText("请求出错，请稍后重试。");
     } finally {
       setIsLoading(false);
@@ -59,8 +59,8 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
   const activeExpert = activeExpertId ? EXPERT_CONFIGS[activeExpertId] : undefined;
 
   return (
-    <div className="flex flex-col h-full w-full bg-gray-50">
-      <div className="flex gap-4 p-4 border-b bg-white overflow-x-auto shrink-0">
+    <div className="workspaceRoot flex h-full w-full flex-col bg-gray-50">
+      <div className="workspaceTabs flex shrink-0 gap-4 overflow-x-auto border-b bg-white p-4">
         {moduleExperts.map((id) => {
           const config = EXPERT_CONFIGS[id];
           const isActive = id === activeExpertId;
@@ -68,10 +68,10 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
             <button
               key={id}
               type="button"
-              onClick={() => setActiveExpertId(id)}
-              className={`min-w-[160px] rounded-xl border px-4 py-3 text-left transition-all ${
+              onClick={() => handleExpertChange(id)}
+              className={`workspaceExpertCard min-w-[160px] rounded-xl border px-4 py-3 text-left transition-all ${
                 isActive
-                  ? "border-blue-600 bg-blue-50 ring-2 ring-blue-200 font-semibold"
+                  ? "isActive border-blue-600 bg-blue-50 font-semibold ring-2 ring-blue-200"
                   : "border-gray-200 bg-white hover:border-gray-300"
               }`}
             >
@@ -84,8 +84,8 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-1 overflow-hidden p-4 gap-4">
-        <div className="flex-1 bg-white rounded-lg shadow flex flex-col p-4 min-w-0">
+      <form onSubmit={handleSubmit} className="workspaceForm flex flex-1 gap-4 overflow-hidden p-4">
+        <div className="workspaceInputPanel flex min-w-0 flex-1 flex-col rounded-lg bg-white p-4 shadow">
           <div className="mb-4 text-lg font-semibold text-gray-800">
             {activeExpert?.name || "请选择专家"}
           </div>
@@ -98,15 +98,15 @@ export default function Workspace({ moduleExperts }: WorkspaceProps) {
           <button
             type="submit"
             disabled={isLoading || !activeExpertId}
-            className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="workspaceActionBtn mt-4 inline-flex h-12 w-full items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
             {isLoading ? "AI思考中..." : "生成专属方案"}
           </button>
         </div>
 
-        <div className="flex-1 bg-white rounded-lg shadow p-6 overflow-y-auto relative min-w-0">
+        <div className="workspaceOutputPanel relative min-w-0 flex-1 overflow-y-auto rounded-lg bg-white p-6 shadow">
           {isLoading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/80">
+            <div className="workspaceLoadingOverlay absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/80">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-300 border-t-blue-600" />
               <div className="text-gray-700">AI 正在生成，请稍候...</div>
             </div>

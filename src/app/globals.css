@@ -194,4 +194,52 @@ a {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+/* ===== Workspace Fallback ===== */
+.workspaceRoot {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.workspaceTabs {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.workspaceExpertCard {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #111827;
+}
+
+.workspaceExpertCard.isActive {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.workspaceForm {
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.workspaceInputPanel,
+.workspaceOutputPanel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #1f2937;
+}
+
+.workspaceActionBtn {
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #2563eb;
+}
+
+.workspaceActionBtn:disabled {
+  background: #93c5fd;
+  border-color: #93c5fd;
+}
+
+.workspaceLoadingOverlay {
+  background: rgba(255, 255, 255, 0.8);
+  color: #374151;
 }
